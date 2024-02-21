@@ -68,6 +68,9 @@ _BEGIN_STD_C
 #define SSD1306_I2C_ADDR (0x3C << 1)
 #endif
 
+
+#define SSD1306_I2C_DMA
+
 /* ^^^ I2C config ^^^ */
 
 /* vvv SPI config vvv */
