@@ -16,13 +16,14 @@ void ssd1306_WriteCommand(uint8_t byte) {
 
 // Send data
 void ssd1306_WriteData(uint8_t* buffer, size_t buff_size) {
-    HAL_I2C_Mem_Write(&SSD1306_I2C_PORT, SSD1306_I2C_ADDR, 0x40, 1, buffer, buff_size, HAL_MAX_DELAY);
+    #ifdef SSD1306_I2C_DMA
+        HAL_I2C_Mem_Write_DMA(&SSD1306_I2C_PORT, SSD1306_I2C_ADDR, 0x40, 1, buffer, buff_size);
+    #else
+        HAL_I2C_Mem_Write(&SSD1306_I2C_PORT, SSD1306_I2C_ADDR, 0x40, 1, buffer, buff_size, HAL_MAX_DELAY);
+    #endif
 }
 
-// added write function for transmit via DMA.
-void ssd1306_WriteData_DMA(uint8_t* buffer, size_t buffer_size){
-    HAL_I2C_Mem_Write_DMA(&SSD1306_I2C_PORT, SSD1306_I2C_ADDR, 0x40, 1, buffer, buffer_size);
-}
+
 
 #elif defined(SSD1306_USE_SPI)
 
@@ -193,11 +194,8 @@ void ssd1306_UpdateScreen(void) {
         ssd1306_WriteCommand(0xB0 + i); // Set the current RAM page address.
         ssd1306_WriteCommand(0x00 + SSD1306_X_OFFSET_LOWER);
         ssd1306_WriteCommand(0x10 + SSD1306_X_OFFSET_UPPER);
-        #ifdef SSD1306_I2C_DMA
-        ssd1306_writeData(&SSD1306_Buffer[SSD1306_WIDTH*i],SSD1306_WIDTH);
-        #else
+        
         ssd1306_WriteData(&SSD1306_Buffer[SSD1306_WIDTH*i],SSD1306_WIDTH);
-        #endif
     }
 }
 
