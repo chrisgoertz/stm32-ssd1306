@@ -4,20 +4,33 @@
 #include <string.h>  // For memcpy
 
 #if defined(SSD1306_USE_I2C)
-
+extern uint8_t oled_page;
+static bool dma_ready;
 void ssd1306_Reset(void) {
     /* for I2C - do nothing */
 }
 
 // Send a byte to the command register
 void ssd1306_WriteCommand(uint8_t byte) {
-    HAL_I2C_Mem_Write(&SSD1306_I2C_PORT, SSD1306_I2C_ADDR, 0x00, 1, &byte, 1, HAL_MAX_DELAY);
+    #ifdef SSD1306_I2C_DMA
+        if(HAL_I2C_GetState != HAL_BUSY){
+            while(!dma_ready){};
+            dma_ready = false;
+            HAL_I2C_Mem_Write_DMA(&SSD1306_I2C_PORT, SSD1306_I2C_ADDR, 0x00, 1, &byte, 1);
+        }
+    #else
+        HAL_I2C_Mem_Write(&SSD1306_I2C_PORT, SSD1306_I2C_ADDR, 0x00, 1, &byte, 1, HAL_MAX_DELAY);
+    #endif
 }
 
 // Send data
 void ssd1306_WriteData(uint8_t* buffer, size_t buff_size) {
     #ifdef SSD1306_I2C_DMA
-        HAL_I2C_Mem_Write_DMA(&SSD1306_I2C_PORT, SSD1306_I2C_ADDR, 0x40, 1, buffer, buff_size);
+        if(HAL_I2C_GetState != HAL_BUSY){
+            while(!dma_ready){};
+            dma_ready = false;
+            HAL_I2C_Mem_Write_DMA(&SSD1306_I2C_PORT, SSD1306_I2C_ADDR, 0x40, 1, buffer, buff_size);
+        }
     #else
         HAL_I2C_Mem_Write(&SSD1306_I2C_PORT, SSD1306_I2C_ADDR, 0x40, 1, buffer, buff_size, HAL_MAX_DELAY);
     #endif
@@ -75,8 +88,13 @@ SSD1306_Error_t ssd1306_FillBuffer(uint8_t* buf, uint32_t len) {
     return ret;
 }
 
+void ssd1306_DMAState(bool b){
+    dma_ready = b;
+}
+
 /* Initialize the oled screen */
 void ssd1306_Init(void) {
+    dma_ready = true;
     // Reset OLED
     ssd1306_Reset();
 
